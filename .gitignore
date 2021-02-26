@@ -1,6 +1,7 @@
 # Data
 *.csv
 *.xlsx
+!company_names.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
