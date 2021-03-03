@@ -2,8 +2,7 @@
 *.csv
 *.xlsx
 !company_names.xlsx
-df_ner.pickle
-df_ner_clean.pickle
+*.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
