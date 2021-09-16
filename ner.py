@@ -37,7 +37,7 @@ def logger_ner():
     fhandler = logging.FileHandler(log_file)
     fhandler.setFormatter(formatter)
     
-    logger = logging.getLogger('word2vec')
+    logger = logging.getLogger('ner')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(fhandler)
     logger.default_formatter = formatter
@@ -129,21 +129,23 @@ def process_ner(full_data, partial_data, first_pass, articles_to_process, logger
         df_ner_matched.to_pickle('./data/df_ner_matched.pickle')  
     elif partial_data:
         if first_pass:
-            df_ner_matched = df_ner_clean.copy() # only or first time
+            df_ner_matched = pd.read_pickle('./data/df_ner_210717.pickle') # only or first time
             start_index = 0
         else:
-            df_ner_matched = pd.read_pickle('./data/df_ner_matched.pickle')
+            df_ner_matched = pd.read_pickle('./data/df_ner_matched_210913.pickle')
             start_index = df_ner_matched[df_ner_matched['filtered_names_match'].isna()].iloc[0].name
-            print(f'start index: {start_index}')
+            print(f'start index name: {start_index}')
+            start_index = df_ner_matched.index.get_loc(start_index)
+            print(f'start index loc: {start_index}')
         end_index = start_index + articles_to_process
         print(f'end index: {end_index}')
         logger.info(f"start index: {start_index}, end_index: {end_index}")
         df_ner_matched_subset = df_ner_matched[start_index:end_index]
         df_ner_matched_subset = match_companies(df_ner_matched_subset, file_name='df_ner_matched')
         df_ner_matched_new = df_ner_matched[:start_index].append(df_ner_matched_subset).append(df_ner_matched[end_index:])
-        df_ner_matched_new.to_pickle('./data/df_ner_matched.pickle')
+        df_ner_matched_new.to_pickle('./data/df_ner_matched_210913.pickle')
     else:
-        df_ner_matched = pd.read_pickle('./data/df_ner_matched.pickle')
+        df_ner_matched = pd.read_pickle('./data/df_ner_matched_210913.pickle')
 
 
 logger = logger_ner()
@@ -172,9 +174,9 @@ org_stopwords = load_stopwords(filepath_stopwords, sheet_name)
 # total processing will take 9 days so processed in stages
 full_data = False
 partial_data = True
-articles_to_process = 1000
+articles_to_process = 2000
 first_pass = False
-num_runs = 3
+num_runs = 10
 
 for n in range(num_runs):
     print(f'run number {n}')
