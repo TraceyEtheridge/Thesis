@@ -174,9 +174,9 @@ org_stopwords = load_stopwords(filepath_stopwords, sheet_name)
 # total processing will take 9 days so processed in stages
 full_data = False
 partial_data = True
-articles_to_process = 2000
+articles_to_process = 1000
 first_pass = False
-num_runs = 10
+num_runs = 6
 
 for n in range(num_runs):
     print(f'run number {n}')
