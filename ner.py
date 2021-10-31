@@ -117,6 +117,59 @@ def match_companies(df, file_name='df_ner_temp'):
 
         df.iat[idx,col_index_fn] = sorted(list(set(filtered_names)))
         df.iat[idx,col_index_fnm] = sorted(list(set(filtered_names_match)))
+    
+    return df
+
+def match_companies_titles(df, file_name='df_ner_temp'):
+    
+    df = df.copy()
+    df['filtered_names_titles'] = ''
+    df['filtered_names_titles_match'] = ''
+    col_index_fn = df.columns.get_loc('filtered_names_titles')
+    col_index_fnm = df.columns.get_loc('filtered_names_titles_match')
+    #print_on = True
+    print_on = False
+
+    for idx, names in tqdm(enumerate(df['org_names_titles'])):
+        if print_on:
+            print('\n', idx, names, 'labels: ', df.iat[idx,col_index_onl])
+        filtered_names = []
+        filtered_names_match = []
+        for name in names:
+
+            # Rule 1 - NER name only 1 word -> set of common words  -> similarity ratio on set
+            if len(name.split(' ')) == 1:
+                processor = lambda x: set(x.lower().split()) - set(companies_list_common_words)
+                processor_2 = lambda x: x.lower()
+                best_match = process.extractOne(query=name, choices=companies_list['name'], processor=processor, scorer=fuzz.token_sort_ratio, score_cutoff=98)
+                #best_match = process.extractOne(query=name, choices=companies_list['name'], processor=processor_2, scorer=fuzz.ratio, score_cutoff=75)
+                if best_match:
+                    if print_on:
+                        print('rule1: ', name, '-', best_match, best_match[1])
+                    filtered_names.append(name)
+                    filtered_names_match.append(best_match[0])            
+
+            # Rule 2 - NER name longer than 1 word plus part of name in stopwords list -> similarity ratio on set
+            elif set(name.split(' ')).intersection(org_stopwords):
+                processor_2 = lambda x: x.lower()
+                best_match = process.extractOne(query=name, choices=companies_list['name'], processor=processor_2, scorer=fuzz.token_set_ratio, score_cutoff=95)
+                if best_match:
+                    if print_on:
+                        print('rule2: ', name, '-', best_match[0], best_match[1])
+                    filtered_names.append(name)
+                    filtered_names_match.append(best_match[0])
+
+            else:
+                best_match = process.extractOne(query=name, choices=companies_list['name'], scorer=fuzz.partial_ratio, score_cutoff=96)
+                if best_match:
+                    if print_on:
+                        print(f'best match: {best_match}')
+                        print('rule3: ', name, '-', best_match[0], best_match[1])
+                    filtered_names.append(name)
+                    filtered_names_match.append(best_match[0])
+
+        df.iat[idx,col_index_fn] = sorted(list(set(filtered_names)))
+        df.iat[idx,col_index_fnm] = sorted(list(set(filtered_names_match)))
         
         #if idx % 5000 == 0:
          #   df.to_pickle('./data/' + file_name + '.pickle')
@@ -148,6 +201,31 @@ def process_ner(full_data, partial_data, first_pass, articles_to_process, logger
         df_ner_matched = pd.read_pickle('./data/df_ner_matched_210913.pickle')
 
 
+def process_ner_titles(full_data, partial_data, first_pass, articles_to_process, logger):
+    if full_data:
+        df_ner_matched = match_companies(df_ner_clean, file_name='df_ner_matched_titles')
+        df_ner_matched.to_pickle('./data/df_ner_matched_titles.pickle')  
+    elif partial_data:
+        if first_pass:
+            df_ner_matched = pd.read_pickle('./data/df_ner_clean_titles.pickle') # only or first time
+            start_index = 0
+        else:
+            df_ner_matched = pd.read_pickle('./data/df_ner_matched_titles_211030.pickle')
+            start_index = df_ner_matched[df_ner_matched['filtered_names_titles_match'].isna()].iloc[0].name
+            print(f'start index name: {start_index}')
+            start_index = df_ner_matched.index.get_loc(start_index)
+            print(f'start index loc: {start_index}')
+        end_index = start_index + articles_to_process
+        print(f'end index: {end_index}')
+        logger.info(f"start index: {start_index}, end_index: {end_index}")
+        df_ner_matched_subset = df_ner_matched[start_index:end_index]
+        df_ner_matched_subset = match_companies_titles(df_ner_matched_subset, file_name='df_ner_matched_titles')
+        df_ner_matched_new = df_ner_matched[:start_index].append(df_ner_matched_subset).append(df_ner_matched[end_index:])
+        df_ner_matched_new.to_pickle('./data/df_ner_matched_titles_211030.pickle')
+    else:
+        df_ner_matched = pd.read_pickle('./data/df_ner_matched_titles_211030.pickle')
+
+
 logger = logger_ner()
 
 # Import listed companies
@@ -174,11 +252,12 @@ org_stopwords = load_stopwords(filepath_stopwords, sheet_name)
 # total processing will take 9 days so processed in stages
 full_data = False
 partial_data = True
-articles_to_process = 1000
+articles_to_process = 10000
 first_pass = False
-num_runs = 6
+num_runs = 2
 
 for n in range(num_runs):
     print(f'run number {n}')
     logger.info(f"number of runs: {n}")
-    process_ner(full_data, partial_data, first_pass, articles_to_process, logger)
+    #process_ner(full_data, partial_data, first_pass, articles_to_process, logger)
+    process_ner_titles(full_data, partial_data, first_pass, articles_to_process, logger)
