@@ -33,6 +33,11 @@ def topic_vector(keyword, vocab, n_words):
     words_vecs = vectors[words_idx]
     return np.mean(words_vecs, axis=0)
 
+def topic_vector_defined_words(keyword, vocab, vectors, words):
+    words_idx = np.where(np.isin(vocab, words))[0]
+    words_vecs = vectors[words_idx]
+    return np.mean(words_vecs, axis=0)
+
 model = Top2Vec.load('top2vec_vocab_limit_deep.model')
 
 # Get words in vocab
@@ -67,18 +72,48 @@ outsourcing = topic_vector("outsourcing", vocab, 2)
 workfromhome = topic_vector("workfromhome", vocab, 4)
 diversification = topic_vector("diversification", vocab, 3)
 
-topics_str = ['blockchain','digitization','machine_learne','cloud','iot','store_closure','delivery','redundancy','costcutte','flight','supply_chain','shutdown','outsourcing','workfromhome','diversification',]
-topics_var = [blockchain ,digitization ,machine_learne ,cloud ,iot ,store_closure ,delivery ,redundancy ,costcutte ,flight ,supply_chain ,shutdown ,outsourcing ,workfromhome ,diversification]
-topics = dict(zip(topics_str, topics_var))
+# Healthcare / Pharmaceuticals / Security
+vaccines = ['vaccine', 'inoculate', 'vaccinate', 'dose', 'vaccination', 'vaccinated', 'shot', 'immunization', 'jab']
+drug_discovery = ['discover', 'biology', 'therapeutic', 'advancement', 'molecule', 'development']
+tele_health = ['telemedicine', 'teladoc', 'clinician', 'healthcare', 'behavioral', 'practitioner', 'physician', 'triage', 
+               'clinic', 'medicare']
 
-calculate_doc_distance = True
+vaccines = topic_vector_defined_words('vaccines', vocab, vectors, vaccines)
+drug_discovery = topic_vector_defined_words('drug_discovery', vocab, vectors, drug_discovery)
+tele_health = topic_vector_defined_words('tele_health', vocab, vectors, tele_health)
+cybersecurity = topic_vector("cybersecurity", vocab, 20)
+
+calculate_doc_distance = False
 
 if calculate_doc_distance:
+
+    topics_str = ['blockchain','digitization','machine_learne','cloud','iot','store_closure','delivery','redundancy','costcutte','flight','supply_chain','shutdown','outsourcing','workfromhome','diversification',]
+    topics_var = [blockchain ,digitization ,machine_learne ,cloud ,iot ,store_closure ,delivery ,redundancy ,costcutte ,flight ,supply_chain ,shutdown ,outsourcing ,workfromhome ,diversification]
+    topics = dict(zip(topics_str, topics_var))
+    
     tqdm.pandas()
     df = pd.read_pickle('df_doc_embeddings.pickle')
     for key, value in topics.items():
         print(key + '_word')
         df[key + '_word'] = df['content_lemma'].progress_apply(document_word_comparison, args=(vocab, value,))
     df.to_pickle('df_doc_embeddings_word.pickle')
+else:
+    df = pd.read_pickle('df_doc_embeddings_word.pickle')
+
+#------additional terms--------#
+calculate_doc_distance_additional = True
+
+if calculate_doc_distance_additional:
+
+    topics_str = ['vaccines', 'drug_discovery', 'tele_health', 'cybersecurity']
+    topics_var = [vaccines, drug_discovery, tele_health, cybersecurity]
+    topics = dict(zip(topics_str, topics_var))
+    
+    tqdm.pandas()
+    df = pd.read_pickle('df_doc_embeddings_word.pickle')
+    for key, value in topics.items():
+        print(key + '_word')
+        df[key + '_word'] = df['content_lemma'].progress_apply(document_word_comparison, args=(vocab, value,))
+        df.to_pickle('df_doc_embeddings_word_additional.pickle')
 else:
     df = pd.read_pickle('df_doc_embeddings_word.pickle')

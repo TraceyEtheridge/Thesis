@@ -15,24 +15,25 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 find_topics = True
-min_count = 1000 # ignore words with total frequency less than this
+min_count = 25 # ignore words with total frequency less than this
 speed = 'deep-learn' # can try 'deep-learn' for possible better embeddings but will take longer
-# started deep-learn at 1pm, still going at 11am 2 days later
+# started deep-learn at 1pm Friday, still going at 6pm Monday start:01.10.21 13:17 finish: 05.10.21 10:15
 
 if find_topics:
     # import lemmatised data
-    with open('data/data_lemmatized.pickle', 'rb') as f:
-        data_lemmatized = pickle.load(f)
-    
-    data_lemmatized_str = [' '.join(article) for article in data_lemmatized]
-    print(len(data_lemmatized))
-    print(len(data_lemmatized_str))
+    #with open('data/df.pickle', 'rb') as f:
+     #   data_articles = pickle.load(f)
+    df_ind = pd.read_pickle('data/df_industry.pickle')
+
+    #documents = [' '.join(article) for article in data_lemmatized]
+    documents = list(df_ind['content_processed'])
+    print(len(df_ind))
+    print(len(documents))
     
     # Find topics
     # ~ 12.5 hours to run on lemmatised data
-    documents = data_lemmatized_str
     model = Top2Vec(documents, workers=4, min_count=min_count, speed=speed)
-    model.save('top2vec_vocab_limit_deep.model')
+    model.save('top2vec_deep_ind_consumer_staples_no_marketscreener.model')
 else:
     #model = Top2Vec.load('top2vec.model')
     model = Top2Vec.load('top2vec_vocab_limit.model')
