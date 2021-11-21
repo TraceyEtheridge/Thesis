@@ -1,5 +1,4 @@
 import pandas as pd
-#from top2vec import Top2Vec
 import os
 import collections
 import csv
